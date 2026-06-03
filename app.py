@@ -39,7 +39,8 @@ if st.button("Send"):
         else:
             response = model.predict(user_vec)[0]
 
-        st.session_state.chat.append(("You", user_input))
+        st.session_state.chat.append((
+            "You", user_input))
         st.session_state.chat.append(("Bot", response))
 
 # Chat history show
