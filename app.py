@@ -21,7 +21,9 @@ model.fit(X_vec, y)
 st.title("💬 Customer Support Chatbot")
 
 if "chat" not in st.session_state:
-    st.session_state.chat = []
+    st.session_state.chat = [
+        ("Bot", "👋 Hello! Welcome to Customer Support. How can I help you today?")
+    ]
 
 user_input = st.text_input("Ask your question:")
 
