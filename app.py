@@ -2,54 +2,79 @@ import streamlit as st
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from streamlit_local_storage import LocalStorage
 
-# Load dataset
+localS = LocalStorage()
+
 df = pd.read_csv("customersupport.csv")
-print(df.head(20))
 
 X = df["question"]
 y = df["answer"]
 
-# Vectorization + model training
 vectorizer = TfidfVectorizer()
 X_vec = vectorizer.fit_transform(X)
 
 model = LogisticRegression(max_iter=1000)
 model.fit(X_vec, y)
 
-# UI
 st.title("💬 Customer Support Chatbot")
 
-if "chat" not in st.session_state:
-    st.session_state.chat = [
-        ("Bot", "👋 Hello! Welcome to Customer Support. How can I help you today?")
-    ]
+# ---------- NAME ----------
+name = localS.getItem("user_name")
 
-user_input = st.text_input("Ask your question:")
+if not name:
 
-if st.button("Send"):
-    if user_input:
+    user_name = st.text_input("Enter Your Name")
 
-        user_vec = vectorizer.transform([user_input])
-        scores = model.predict_proba(user_vec)[0]
-        max_score = max(scores)
+    # 👉 LIVE GREETING WHILE TYPING
+    if user_name:
+        st.write("👋 Welcome", user_name)
 
-        if max_score < 0.3:
-            response = "Sorry, I don't understand. Please rephrase."
+    if st.button("Save Name") and user_name:
+        localS.setItem("user_name", user_name)
+        st.rerun()
+
+else:
+
+    st.write("👋 Welcome back", name)
+
+    if "chat" not in st.session_state:
+        old_chat = localS.getItem("chat_history")
+
+        if old_chat:
+            st.session_state.chat = old_chat
         else:
-            response = model.predict(user_vec)[0]
+            st.session_state.chat = [
+                ("Bot", "Hello " + name + "! How can I help you?")
+            ]
 
-        st.session_state.chat.append((
-            "You", user_input))
-        st.session_state.chat.append(("Bot", response))
+    question = st.text_input("Ask your question")
 
-# Chat history show
-for role, msg in st.session_state.chat:
-    if role == "You":
-        st.write(f" {msg}")
-    else:
-        st.write(f"{msg}")
-        #C:\Users\Dell Latitude\Desktop\project of ml\chat-boot\CustomerSumpportBot"
-       # -m streamlit run app.py
+    if st.button("Send") and question:
 
-       
+        user_vec = vectorizer.transform([question])
+        score = max(model.predict_proba(user_vec)[0])
+
+        if score < 0.3:
+            answer = "Sorry, I don't understand."
+        else:
+            answer = model.predict(user_vec)[0]
+
+        st.session_state.chat.append(("You", question))
+        st.session_state.chat.append(("Bot", answer))
+
+        localS.setItem("chat_history", st.session_state.chat)
+        st.rerun()
+
+    for role, msg in st.session_state.chat:
+        if role == "You":
+            st.write("🧑 You:", msg)
+        else:
+            st.write("🤖 Bot:", msg)
+
+    if st.button("Clear Chat"):
+        st.session_state.chat = [
+            ("Bot", "Hello " + name + "! How can I help you?")
+        ]
+        localS.setItem("chat_history", st.session_state.chat)
+        st.rerun()
